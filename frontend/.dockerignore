@@ -1,0 +1,7 @@
+﻿node_modules
+.git
+.next
+jest.config.ts
+jest.setup.ts
+src/__tests__
+coverage
