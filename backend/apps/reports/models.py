@@ -122,7 +122,7 @@ class ReportSchedule(BaseModel):
         _('format'),
         max_length=10,
         choices=Report.Format.choices,
-        default=Format.PDF
+        default=Report.Format.PDF
     )
     frequency = models.CharField(
         _('fréquence'),
