@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { get, post, patch, del } from "@/lib/api/client"
+import { get, post } from "@/lib/api/client"
 
 interface UseStockOptions {
   warehouse?: string

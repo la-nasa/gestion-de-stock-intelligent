@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React from "react"; // eslint-disable-line no-unused-vars
 import {
   useReactTable,
   getCoreRowModel,

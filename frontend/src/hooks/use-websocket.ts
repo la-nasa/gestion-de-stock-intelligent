@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useRef, useCallback, useState } from "react"
 
@@ -7,10 +7,10 @@ type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error"
 
 interface UseWebSocketOptions {
   url: string
-  onMessage?: MessageHandler
+  onMessage?: (data: any) => void
   onOpen?: () => void
-  onClose?: (code: number) => void
-  onError?: (error: Event) => void
+  onClose?: (code?: number) => void
+  onError?: (error?: Event) => void
   autoReconnect?: boolean
   reconnectInterval?: number
   maxReconnectAttempts?: number

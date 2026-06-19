@@ -1,52 +1,30 @@
 """
-URL Configuration for IUC Inventory System
+URL Configuration for IUC Inventory System.
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-from django.views.generic import RedirectView
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-from rest_framework import permissions
+from django.http import HttpResponse
 
-schema_view = get_schema_view(
-    openapi.Info(
-        title='IUC Inventory System API',
-        default_version='v1',
-        description='API de gestion de stock intelligente pour l\'Institut Universitaire de la Côte',
-        terms_of_service='https://www.iuc.cm/terms/',
-        contact=openapi.Contact(email='support@iuc.cm'),
-        license=openapi.License(name='Proprietary'),
-    ),
-    public=True,
-    permission_classes=[permissions.AllowAny],
-)
+def home(request):
+    return HttpResponse("""
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head><meta charset="UTF-8"><title>IUC Inventory API</title>
+    <style>body{font-family:Arial;max-width:800px;margin:50px auto;padding:20px;background:#f8fafc}
+    h1{color:#1e40af}.card{background:white;padding:20px;border-radius:12px;margin:20px 0;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    a{color:#0d9488;text-decoration:none}code{background:#e2e8f0;padding:2px 6px;border-radius:4px}</style></head>
+    <body>
+    <h1>🏛️ IUC Inventory System API</h1>
+    <div class="card"><h2>✅ API en ligne</h2><p>L'API est opérationnelle.</p></div>
+    <div class="card"><h2>📚 Documentation</h2><p>👉 <a href="/swagger/">Swagger UI</a></p><p>👉 <a href="/redoc/">ReDoc</a></p><p>👉 <a href="/admin/">Administration Django</a></p></div>
+    <div class="card"><h2>🔑 Connexion</h2><p>Endpoint: <code>POST /api/v1/auth/login/</code></p><p>Compte admin: <code>admin@iuc.cm</code></p></div>
+    <div class="card"><h2>🏥 Health Check</h2><p>👉 <a href="/health/">/health/</a></p></div>
+    </body></html>""")
 
 urlpatterns = [
-    # Admin
+    path('', home, name='home'),
     path('admin/', admin.site.urls),
-    
-    # API Documentation
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    
-    # API v1
+    path('swagger/', include('drf_yasg.urls_custom')),
     path('api/v1/', include('api.v1.urls')),
-    
-    # Health Check
     path('health/', include('core.urls')),
-    
-    # Root redirect
-    path('', RedirectView.as_view(url='/swagger/', permanent=False)),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    
-    # Debug Toolbar
-    import debug_toolbar
-    urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns

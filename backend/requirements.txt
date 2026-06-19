@@ -19,3 +19,6 @@ setuptools==75.8.0
 numpy==2.2.1
 easyocr==1.7.0
 pytesseract
+django_redis==5.2.1
+redis==5.2.1
+celery==5.3.0
