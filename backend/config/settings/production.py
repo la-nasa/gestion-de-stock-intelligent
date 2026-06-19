@@ -1,35 +1,81 @@
+import os
+import dj_database_url
 from .base import *
 
-# Production Settings
 DEBUG = False
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
-# Security Settings
+# Base de données
+DATABASES = {
+    "default": dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
+
+# Redis (optionnel - ne bloque pas si absent)
+try:
+    REDIS_URL = os.environ.get("REDIS_URL", "")
+    if REDIS_URL:
+        CACHES = {
+            "default": {
+                "BACKEND": "django_redis.cache.RedisCache",
+                "LOCATION": REDIS_URL,
+                "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            }
+        }
+        CELERY_BROKER_URL = REDIS_URL
+    else:
+        CACHES = {
+            "default": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            }
+        }
+except ImportError:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+# Channels (désactivé si Redis absent)
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
+    }
+
+# Sécurité
 SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
 
-# Static files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Fichiers statiques
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# Cache
-CACHES['default']['OPTIONS']['CLIENT_CLASS'] = 'django_redis.client.DefaultClient'
-
-# Sentry
-import sentry_sdk
-sentry_sdk.init(
-    dsn=config('SENTRY_DSN'),
-    integrations=[DjangoIntegration(), CeleryIntegration(), RedisIntegration()],
-    traces_sample_rate=0.1,
-    send_default_pii=False,
-)
+# CORS
+CORS_ALLOWED_ORIGINS = [
+    "https://iuc-inventory.vercel.app",
+    "https://iuc-inventory-git-main-la-nasa.vercel.app",
+    "http://localhost:3000",
+]
+CORS_ALLOW_CREDENTIALS = True
 
 # Logging
-LOGGING['handlers']['console']['level'] = 'WARNING'
-LOGGING['loggers']['django']['level'] = 'WARNING'
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}

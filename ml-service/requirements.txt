@@ -8,3 +8,7 @@ scikit-learn==1.3.2
 httpx==0.26.0
 redis==5.0.1
 python-decouple==3.8
+
+
+# postgresql://iuc_user:3ou4zAK9PAPVi7gQ8PMj6yPaLH955IbN@dpg-d8qon8e7r5hc73deh8og-a/iuc_inventory
+# postgresql://iuc_user:3ou4zAK9PAPVi7gQ8PMj6yPaLH955IbN@dpg-d8qon8e7r5hc73deh8og-a.oregon-postgres.render.com/iuc_inventory

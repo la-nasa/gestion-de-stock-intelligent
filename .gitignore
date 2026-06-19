@@ -1,4 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+.env
+*.log
 
+# Node
+node_modules/
+.next/
+out/
 
-#Ignore vscode AI rules
-.github\instructions\codacy.instructions.md
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker/data/
+
+# Database
+*.sqlite3
+*.db
