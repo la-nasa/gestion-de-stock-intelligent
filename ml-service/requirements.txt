@@ -11,4 +11,5 @@ python-decouple==3.8
 
 
 # postgresql://iuc_user:3ou4zAK9PAPVi7gQ8PMj6yPaLH955IbN@dpg-d8qon8e7r5hc73deh8og-a/iuc_inventory
+# a511bce808673bddab987531bb587ae2
 # postgresql://iuc_user:3ou4zAK9PAPVi7gQ8PMj6yPaLH955IbN@dpg-d8qon8e7r5hc73deh8og-a.oregon-postgres.render.com/iuc_inventory
