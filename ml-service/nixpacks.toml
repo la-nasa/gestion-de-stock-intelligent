@@ -2,7 +2,7 @@
 nixPkgs = ["python313"]
 
 [phases.install]
-cmds = ["python -m venv /opt/venv && /opt/venv/bin/pip install -r requirements.txt"]
+cmds = ["python -m venv /opt/venv && /opt/venv/bin/pip install fastapi uvicorn pydantic"]
 
 [start]
-cmd = "/opt/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000"
+cmd = "/opt/venv/bin/python -c \"import uvicorn; uvicorn.run('app.main:app', host='0.0.0.0', port=8000)\""
