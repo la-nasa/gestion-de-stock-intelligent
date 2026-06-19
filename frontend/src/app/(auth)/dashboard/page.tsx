@@ -1,208 +1,86 @@
 "use client"
+import { Package, DollarSign, ShoppingCart, AlertTriangle, ArrowUpDown, Users, TrendingUp, TrendingDown } from "lucide-react"
 
-import React, { useState, useEffect } from "react"
-import {
-  Package,
-  DollarSign,
-  ShoppingCart,
-  AlertTriangle,
-  ArrowUpDown,
-  Warehouse,
-  Users,
-  TrendingUp,
-} from "lucide-react"
-import { KPICard } from "@/components/dashboard/kpi-card"
-import { RecentActivity } from "@/components/dashboard/recent-activity"
-import { BaseChart } from "@/components/charts/base-chart"
-import { BarChart } from "@/components/charts/bar-chart"
-import { LineChart } from "@/components/charts/line-chart"
-import { PieChart } from "@/components/charts/pie-chart"
-import { Button } from "@/components/ui/button"
-import { formatCurrency, formatNumber } from "@/lib/utils"
-
-// Données mockées pour le dashboard
-const mockKPIs = {
-  totalProducts: { value: 2847, change: "+12.5%", trend: "up" as const },
-  stockValue: { value: "156.8M XAF", change: "+8.2%", trend: "up" as const },
-  pendingOrders: { value: 24, change: "-3.1%", trend: "down" as const },
-  lowStockItems: { value: 18, change: "+5.5%", trend: "up" as const },
-  activeTransfers: { value: 7, change: "+2", trend: "up" as const },
-  totalSuppliers: { value: 86, change: "+4", trend: "up" as const },
-}
-
-const monthlyConsumption = [
-  { month: "Jan", Informatique: 4500000, Bureautique: 2300000, Laboratoire: 1800000 },
-  { month: "Fév", Informatique: 5200000, Bureautique: 2100000, Laboratoire: 1950000 },
-  { month: "Mar", Informatique: 4800000, Bureautique: 2500000, Laboratoire: 2100000 },
-  { month: "Avr", Informatique: 6100000, Bureautique: 2800000, Laboratoire: 2200000 },
-  { month: "Mai", Informatique: 5500000, Bureautique: 2600000, Laboratoire: 2400000 },
-  { month: "Juin", Informatique: 6300000, Bureautique: 2900000, Laboratoire: 2600000 },
-  { month: "Juil", Informatique: 5800000, Bureautique: 2700000, Laboratoire: 2500000 },
-  { month: "Août", Informatique: 4900000, Bureautique: 2400000, Laboratoire: 2300000 },
-  { month: "Sep", Informatique: 6700000, Bureautique: 3100000, Laboratoire: 2800000 },
-  { month: "Oct", Informatique: 7200000, Bureautique: 3200000, Laboratoire: 2900000 },
-  { month: "Nov", Informatique: 6900000, Bureautique: 3000000, Laboratoire: 3100000 },
-  { month: "Déc", Informatique: 7500000, Bureautique: 3400000, Laboratoire: 3300000 },
+const stats = [
+  { title: "Produits en stock", value: "2 847", change: "+12.5%", trend: "up", icon: Package, color: "from-emerald-500 to-teal-500", bg: "bg-emerald-50" },
+  { title: "Valeur du stock", value: "156.8M XAF", change: "+8.2%", trend: "up", icon: DollarSign, color: "from-blue-500 to-indigo-500", bg: "bg-blue-50" },
+  { title: "Commandes en cours", value: "24", change: "-3.1%", trend: "down", icon: ShoppingCart, color: "from-amber-500 to-orange-500", bg: "bg-amber-50" },
+  { title: "Produits en alerte", value: "18", change: "+5.5%", trend: "up", icon: AlertTriangle, color: "from-rose-500 to-red-500", bg: "bg-rose-50" },
+  { title: "Transferts actifs", value: "7", change: "+2", trend: "up", icon: ArrowUpDown, color: "from-violet-500 to-purple-500", bg: "bg-violet-50" },
+  { title: "Fournisseurs", value: "86", change: "+4", trend: "up", icon: Users, color: "from-cyan-500 to-sky-500", bg: "bg-cyan-50" },
 ]
 
-const stockByCategory = [
-  { name: "Informatique", value: 45000000, color: "#1e40af" },
-  { name: "Bureautique", value: 28000000, color: "#166534" },
-  { name: "Laboratoire", value: 22000000, color: "#ca8a04" },
-  { name: "Mobilier", value: 18000000, color: "#7c3aed" },
-  { name: "Consommables", value: 12000000, color: "#0891b2" },
-]
-
-const topProducts = [
-  { name: "Ordinateur Dell OptiPlex", quantity: 450, value: 22500000 },
-  { name: "Projecteur Epson EB-X51", quantity: 120, value: 36000000 },
-  { name: "Papier A4 (ramette)", quantity: 5000, value: 12500000 },
-  { name: "Imprimante HP LaserJet", quantity: 85, value: 21250000 },
-  { name: "Microscope Olympus", quantity: 35, value: 17500000 },
-]
-
-const mockActivities = [
-  { id: "1", type: "entry" as const, product: "Ordinateurs Dell OptiPlex", quantity: 50, user: "Jean Kouam", warehouse: "Entrepôt Principal", time: "Il y a 2h" },
-  { id: "2", type: "output" as const, product: "Papier A4", quantity: 200, user: "Marie Ngo", warehouse: "Entrepôt Campus B", time: "Il y a 3h" },
-  { id: "3", type: "transfer" as const, product: "Projecteurs Epson", quantity: 5, user: "Paul Biya", warehouse: "Principal → Campus B", time: "Il y a 5h" },
-  { id: "4", type: "inventory" as const, product: "Salle informatique B", user: "Admin", time: "Il y a 1j" },
-  { id: "5", type: "maintenance" as const, product: "Climatiseur Labo Chimie", user: "Tech. Maintenance", time: "Il y a 2j" },
+const activities = [
+  { action: "Entrée stock", product: "Ordinateurs Dell", qty: 50, user: "Jean Kouam", time: "Il y a 2h", color: "bg-emerald-100 text-emerald-700" },
+  { action: "Sortie stock", product: "Papier A4", qty: 200, user: "Marie Ngo", time: "Il y a 3h", color: "bg-blue-100 text-blue-700" },
+  { action: "Transfert", product: "Projecteurs Epson", qty: 5, user: "Paul Biya", time: "Il y a 5h", color: "bg-violet-100 text-violet-700" },
+  { action: "Inventaire", product: "Salle informatique B", user: "Admin", time: "Il y a 1j", color: "bg-amber-100 text-amber-700" },
 ]
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Vue d'ensemble de la gestion de stock - IUC
-          </p>
+          <h1 className="text-2xl font-bold text-gray-800">Tableau de bord</h1>
+          <p className="text-sm text-gray-500 mt-1">Vue d'ensemble de votre gestion de stock</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            Cette semaine
-          </Button>
-          <Button variant="default" size="sm">
-            Exporter
-          </Button>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Cette semaine</button>
+          <button className="px-4 py-2 text-sm text-white rounded-xl font-medium bg-gradient-to-r from-emerald-500 to-teal-600 hover:shadow-lg transition-all">Exporter</button>
         </div>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KPICard
-          title="Produits en stock"
-          value={formatNumber(mockKPIs.totalProducts.value)}
-          change={mockKPIs.totalProducts.change}
-          trend={mockKPIs.totalProducts.trend}
-          icon={Package}
-        />
-        <KPICard
-          title="Valeur du stock"
-          value={mockKPIs.stockValue.value}
-          change={mockKPIs.stockValue.change}
-          trend={mockKPIs.stockValue.trend}
-          icon={DollarSign}
-          iconColor="text-green-600"
-          iconBg="bg-green-50"
-        />
-        <KPICard
-          title="Commandes en cours"
-          value={mockKPIs.pendingOrders.value}
-          change={mockKPIs.pendingOrders.change}
-          trend={mockKPIs.pendingOrders.trend}
-          icon={ShoppingCart}
-          iconColor="text-yellow-600"
-          iconBg="bg-yellow-50"
-        />
-        <KPICard
-          title="Produits en alerte"
-          value={mockKPIs.lowStockItems.value}
-          change={mockKPIs.lowStockItems.change}
-          trend={mockKPIs.lowStockItems.trend}
-          icon={AlertTriangle}
-          iconColor="text-red-600"
-          iconBg="bg-red-50"
-        />
-        <KPICard
-          title="Transferts actifs"
-          value={mockKPIs.activeTransfers.value}
-          change={mockKPIs.activeTransfers.change}
-          trend={mockKPIs.activeTransfers.trend}
-          icon={ArrowUpDown}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-50"
-        />
-        <KPICard
-          title="Fournisseurs"
-          value={mockKPIs.totalSuppliers.value}
-          change={mockKPIs.totalSuppliers.change}
-          trend={mockKPIs.totalSuppliers.trend}
-          icon={Users}
-          iconColor="text-purple-600"
-          iconBg="bg-purple-50"
-        />
+        {stats.map((s, i) => {
+          const Icon = s.icon
+          return (
+            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${s.color} shadow-sm`}>
+                  <Icon size={18} className="text-white" />
+                </div>
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${s.trend === "up" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+                  {s.trend === "up" ? <TrendingUp size={12} className="inline mr-0.5" /> : <TrendingDown size={12} className="inline mr-0.5" />}
+                  {s.change}
+                </span>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
+              <p className="text-sm text-gray-500 mt-1">{s.title}</p>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Graphiques principaux */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Consommation mensuelle */}
-        <div className="lg:col-span-2">
-          <BaseChart
-            title="Consommation mensuelle par catégorie"
-            description="Évolution sur 12 mois (en XAF)"
-            height={350}
-          >
-            <BarChart
-              data={monthlyConsumption}
-              xAxisKey="month"
-              bars={[
-                { dataKey: "Informatique", name: "Informatique", color: "#1e40af" },
-                { dataKey: "Bureautique", name: "Bureautique", color: "#166534" },
-                { dataKey: "Laboratoire", name: "Laboratoire", color: "#ca8a04" },
-              ]}
-            />
-          </BaseChart>
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-gray-800 mb-4">Consommation mensuelle (XAF)</h3>
+          <div className="h-64 flex items-end gap-2">
+            {[65,78,52,91,88,73,95,82,68,89,94,77].map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                <span className="text-[10px] text-gray-400 font-medium">{(h*25000).toLocaleString()}</span>
+                <div className="w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer" 
+                     style={{height: `${h}%`, background: "linear-gradient(180deg, #0d9488, #1e40af)"}}></div>
+                <span className="text-[10px] text-gray-400">{["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"][i]}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Répartition par catégorie */}
-        <div>
-          <BaseChart
-            title="Valeur du stock par catégorie"
-            description="Répartition en XAF"
-            height={350}
-          >
-            <PieChart data={stockByCategory} donut={true} />
-          </BaseChart>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-gray-800 mb-4">Activités récentes</h3>
+          <div className="space-y-3">
+            {activities.map((a, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <div className={`p-2 rounded-lg ${a.color} text-xs font-medium shrink-0`}>{a.action}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate">{a.product}</p>
+                  <p className="text-xs text-gray-400">{a.qty ? `Qté: ${a.qty} • ` : ""}{a.user} • {a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Top produits + Activités */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top produits */}
-        <BaseChart
-          title="Top 5 des produits en valeur"
-          description="Valeur totale en stock"
-          height={300}
-        >
-          <BarChart
-            data={topProducts}
-            xAxisKey="name"
-            layout="vertical"
-            bars={[
-              { dataKey: "value", name: "Valeur (XAF)", color: "#1e40af" },
-            ]}
-            showLegend={false}
-          />
-        </BaseChart>
-
-        {/* Activités récentes */}
-        <RecentActivity
-          activities={mockActivities}
-          onViewAll={() => console.log("Voir tout")}
-        />
       </div>
     </div>
   )
