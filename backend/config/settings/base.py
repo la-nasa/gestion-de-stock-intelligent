@@ -32,22 +32,15 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'import_export',
-    'django_celery_beat',
-    'django_celery_results',
-    'storages',
-    'axes',
     'auditlog',
-    'guardian',
     'allauth',
     'allauth.account',
     'django_otp',
     'django_otp.plugins.otp_totp',
     'two_factor',
-    'channels',
     'drf_yasg',
     'drf_spectacular',
 ]
@@ -219,31 +212,8 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# Celery Configuration
-CELERY_BROKER_URL = config('REDIS_CELERY_URL', default='redis://localhost:6379/2')
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_CACHE_BACKEND = 'django-cache'
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
-# Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_CACHE_URL', default='redis://localhost:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
-            'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
-            'CONNECTION_POOL_CLASS_KWARGS': {
-                'max_connections': 50,
-                'timeout': 20,
-            },
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
             'MAX_CONNECTIONS': 1000,
             'PICKLE_VERSION': -1,
         },
@@ -289,14 +259,7 @@ AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
 AXES_RESET_ON_SUCCESS = True
 
 # Sentry Configuration
-if not DEBUG:
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-
-    sentry_sdk.init(
-        dsn=config('SENTRY_DSN', default=''),
+# Sentry désactivé en production,
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
