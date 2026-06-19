@@ -1,6 +1,6 @@
-\"\"\"
+"""
 Base models for the entire application.
-\"\"\"
+"""
 import uuid
 from django.db import models
 from django.utils import timezone
@@ -8,7 +8,7 @@ from django.conf import settings
 
 
 class SoftDeleteManager(models.Manager):
-    \"\"\"Manager that excludes soft-deleted objects by default.\"\"\"
+    """Manager that excludes soft-deleted objects by default."""
     
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
@@ -21,7 +21,7 @@ class SoftDeleteManager(models.Manager):
 
 
 class BaseModel(models.Model):
-    \"\"\"Abstract base model with common fields.\"\"\"
+    """Abstract base model with common fields."""
     
     id = models.UUIDField(
         primary_key=True,
@@ -58,24 +58,24 @@ class BaseModel(models.Model):
         get_latest_by = 'created_at'
     
     def soft_delete(self):
-        \"\"\"Soft delete the object.\"\"\"
+        """Soft delete the object."""
         self.is_deleted = True
         self.deleted_at = timezone.now()
         self.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
     
     def restore(self):
-        \"\"\"Restore a soft-deleted object.\"\"\"
+        """Restore a soft-deleted object."""
         self.is_deleted = False
         self.deleted_at = None
         self.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
     
     def hard_delete(self):
-        \"\"\"Permanently delete the object.\"\"\"
+        """Permanently delete the object."""
         super().delete()
 
 
 class AuditModel(BaseModel):
-    \"\"\"Abstract model that adds audit trail.\"\"\"
+    """Abstract model that adds audit trail."""
     
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -99,7 +99,7 @@ class AuditModel(BaseModel):
 
 
 class MetaDataModel(BaseModel):
-    \"\"\"Abstract model that adds metadata fields.\"\"\"
+    """Abstract model that adds metadata fields."""
     
     meta_data = models.JSONField(
         default=dict,

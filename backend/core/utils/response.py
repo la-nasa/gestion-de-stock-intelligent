@@ -1,6 +1,6 @@
-\"\"\"
+"""
 Standardized API response utilities.
-\"\"\"
+"""
 from rest_framework.response import Response
 from rest_framework import status
 from typing import Any, Dict, Optional
@@ -12,7 +12,7 @@ def success_response(
     status_code: int = status.HTTP_200_OK,
     meta: Optional[Dict] = None
 ) -> Response:
-    \"\"\"Create a standardized success response.\"\"\"
+    """Create a standardized success response."""
     response_data = {
         'success': True,
         'message': message,
@@ -28,7 +28,7 @@ def error_response(
     errors: Any = None,
     status_code: int = status.HTTP_400_BAD_REQUEST
 ) -> Response:
-    \"\"\"Create a standardized error response.\"\"\"
+    """Create a standardized error response."""
     response_data = {
         'success': False,
         'message': message,
@@ -44,7 +44,7 @@ def paginated_response(
     request,
     context: Optional[Dict] = None
 ) -> Response:
-    \"\"\"Create a paginated response.\"\"\"
+    """Create a paginated response."""
     from rest_framework.pagination import PageNumberPagination
     
     paginator = PageNumberPagination()
