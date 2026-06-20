@@ -1,286 +1,151 @@
 """Vues pour la gestion des stocks."""
 from rest_framework import views, status
-from drf_yasg.utils import swagger_auto_schema
-
 from apps.stock_movements.models import Stock, StockMovement
 from apps.stock_entries.models import StockEntry, StockEntryLine
 from apps.stock_outputs.models import StockOutput, StockOutputLine
 from apps.transfers.models import Transfer, TransferLine
-from api.v1.serializers.stock_serializers import (
-    StockSerializer, StockMovementSerializer,
-    StockEntrySerializer, StockEntryLineSerializer,
-    StockOutputSerializer, TransferSerializer
-)
+from apps.warehouses.models import Warehouse
+from apps.products.models import Product
+from apps.suppliers.models import Supplier
+from api.v1.serializers.stock_serializers import StockSerializer, StockMovementSerializer, StockEntrySerializer, StockOutputSerializer, TransferSerializer
 from api.v1.permissions import IsOperator, IsManager
-from core.utils.response import success_response, error_response, paginated_response
+from core.utils.response import success_response, error_response
 
 
 class StockListView(views.APIView):
-    """Liste des stocks."""
-    
     permission_classes = [IsOperator]
-    
     def get(self, request):
-        queryset = Stock.objects.filter(is_deleted=False).select_related('product', 'warehouse')
-        
-        # Filtres
-        warehouse = request.query_params.get('warehouse')
-        if warehouse:
-            queryset = queryset.filter(warehouse_id=warehouse)
-        
-        product = request.query_params.get('product')
-        if product:
-            queryset = queryset.filter(product_id=product)
-        
-        # Statut stock
-        stock_status = request.query_params.get('status')
-        if stock_status == 'low':
-            queryset = [s for s in queryset if s.quantity <= s.product.min_stock]
-        elif stock_status == 'out':
-            queryset = [s for s in queryset if s.quantity <= 0]
-        
-        return paginated_response(queryset, StockSerializer, request)
-
+        qs = Stock.objects.filter(is_deleted=False).select_related("product", "warehouse")
+        warehouse = request.query_params.get("warehouse")
+        if warehouse: qs = qs.filter(warehouse_id=warehouse)
+        product = request.query_params.get("product")
+        if product: qs = qs.filter(product_id=product)
+        data = [{"id": str(s.id), "product_name": s.product.name, "product_reference": s.product.reference, "warehouse_name": s.warehouse.name, "warehouse": str(s.warehouse_id), "quantity": s.quantity, "reserved_quantity": s.reserved_quantity, "available_quantity": s.available_quantity, "unit_price": float(s.unit_price), "location": s.location or "", "status": "out_of_stock" if s.quantity <= 0 else ("low" if s.quantity <= s.product.min_stock else "normal"), "last_movement_date": s.last_movement_date.isoformat() if s.last_movement_date else None} for s in qs]
+        return success_response(data={"results": data, "count": len(data)})
 
 class StockDetailView(views.APIView):
-    """Détail d'un stock."""
-    
     permission_classes = [IsOperator]
-    
     def get(self, request, pk):
         try:
-            stock = Stock.objects.get(id=pk, is_deleted=False)
+            s = Stock.objects.get(id=pk, is_deleted=False)
+            return success_response(data=StockSerializer(s).data)
         except Stock.DoesNotExist:
             return error_response(message="Stock introuvable", status_code=404)
-        
-        serializer = StockSerializer(stock)
-        return success_response(data=serializer.data)
-
 
 class StockMovementListView(views.APIView):
-    """Liste des mouvements de stock."""
-    
     permission_classes = [IsOperator]
-    
     def get(self, request):
-        queryset = StockMovement.objects.filter(is_deleted=False).select_related(
-            'stock__product', 'stock__warehouse', 'performed_by'
-        )
-        
-        # Filtres
-        movement_type = request.query_params.get('type')
-        if movement_type:
-            queryset = queryset.filter(movement_type=movement_type)
-        
-        stock_id = request.query_params.get('stock')
-        if stock_id:
-            queryset = queryset.filter(stock_id=stock_id)
-        
-        is_validated = request.query_params.get('validated')
-        if is_validated is not None:
-            queryset = queryset.filter(is_validated=is_validated.lower() == 'true')
-        
-        date_from = request.query_params.get('date_from')
-        if date_from:
-            queryset = queryset.filter(created_at__gte=date_from)
-        
-        date_to = request.query_params.get('date_to')
-        if date_to:
-            queryset = queryset.filter(created_at__lte=date_to)
-        
-        return paginated_response(queryset, StockMovementSerializer, request)
-    
-    @swagger_auto_schema(
-        operation_description="Crée un mouvement de stock",
-        request_body=StockMovementSerializer
-    )
-    def post(self, request):
-        serializer = StockMovementSerializer(data=request.data)
-        if not serializer.is_valid():
-            return error_response(message="Erreur validation", errors=serializer.errors, status_code=400)
-        
-        movement = serializer.save(performed_by=request.user)
-        output = StockMovementSerializer(movement)
-        return success_response(data=output.data, message="Mouvement créé", status_code=201)
-
-
-class StockMovementValidateView(views.APIView):
-    """Validation d'un mouvement de stock."""
-    
-    permission_classes = [IsManager]
-    
-    def post(self, request, pk):
-        try:
-            movement = StockMovement.objects.get(id=pk, is_deleted=False)
-        except StockMovement.DoesNotExist:
-            return error_response(message="Mouvement introuvable", status_code=404)
-        
-        if movement.is_validated:
-            return error_response(message="Déjà validé", status_code=409)
-        
-        try:
-            movement.validate(request.user)
-            return success_response(message="Mouvement validé")
-        except Exception as e:
-            return error_response(message=str(e), status_code=400)
-
+        qs = StockMovement.objects.filter(is_deleted=False).select_related("stock__product", "stock__warehouse", "performed_by").order_by("-created_at")[:100]
+        data = [{"id": str(m.id), "movement_type": m.movement_type, "reason": m.reason, "product_name": m.stock.product.name, "warehouse_name": m.stock.warehouse.name, "quantity": m.quantity, "unit_price": float(m.unit_price), "total_price": float(m.total_price), "performed_by_name": m.performed_by.get_full_name() if m.performed_by else "", "is_validated": m.is_validated, "created_at": m.created_at.isoformat()} for m in qs]
+        return success_response(data={"results": data, "count": len(data)})
 
 class StockEntryListView(views.APIView):
-    """Liste et création des entrées de stock."""
-    
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsManager()]
-        return [IsOperator()]
-    
+    permission_classes = [IsOperator]
     def get(self, request):
-        queryset = StockEntry.objects.filter(is_deleted=False).select_related('warehouse', 'supplier')
-        return paginated_response(queryset, StockEntrySerializer, request)
-    
-    @swagger_auto_schema(request_body=StockEntrySerializer)
-    def post(self, request):
-        serializer = StockEntrySerializer(data=request.data)
-        if not serializer.is_valid():
-            return error_response(message="Erreur validation", errors=serializer.errors, status_code=400)
-        
-        entry = serializer.save(received_by=request.user)
-        return success_response(data=StockEntrySerializer(entry).data, message="Entrée créée", status_code=201)
-
+        qs = StockEntry.objects.filter(is_deleted=False).select_related("warehouse", "supplier").order_by("-entry_date")
+        data = [{"id": str(e.id), "reference": e.reference, "supplier_name": e.supplier.name if e.supplier else "", "entry_date": e.entry_date.isoformat() if e.entry_date else None, "total_amount": float(e.total_amount), "status": e.status} for e in qs]
+        return success_response(data={"results": data, "count": len(data)})
 
 class StockEntryDetailView(views.APIView):
-    """Détail d'une entrée de stock avec ses lignes."""
-    
-    def get_permissions(self):
-        if self.request.method in ['PATCH', 'DELETE']:
-            return [IsManager()]
-        return [IsOperator()]
-    
+    permission_classes = [IsOperator]
     def get(self, request, pk):
         try:
-            entry = StockEntry.objects.get(id=pk, is_deleted=False)
+            e = StockEntry.objects.get(id=pk, is_deleted=False)
+            lines = [{"product_name": l.product.name, "quantity": l.quantity, "unit_price": float(l.unit_price), "total_price": float(l.total_price)} for l in e.lines.all()]
+            return success_response(data={"id": str(e.id), "reference": e.reference, "supplier_name": e.supplier.name if e.supplier else "", "entry_date": e.entry_date.isoformat() if e.entry_date else None, "total_amount": float(e.total_amount), "status": e.status, "lines": lines})
         except StockEntry.DoesNotExist:
             return error_response(message="Entrée introuvable", status_code=404)
-        
-        serializer = StockEntrySerializer(entry)
-        lines = StockEntryLineSerializer(entry.lines.all(), many=True)
-        
-        return success_response(data={
-            'entry': serializer.data,
-            'lines': lines.data
-        })
-    
-    @swagger_auto_schema(request_body=StockEntryLineSerializer)
-    def post(self, request, pk):
-        """Ajoute une ligne à l'entrée."""
-        try:
-            entry = StockEntry.objects.get(id=pk, is_deleted=False, status='DRAFT')
-        except StockEntry.DoesNotExist:
-            return error_response(message="Entrée introuvable ou non modifiable", status_code=404)
-        
-        serializer = StockEntryLineSerializer(data={**request.data, 'entry': entry.id})
-        if not serializer.is_valid():
-            return error_response(message="Erreur validation", errors=serializer.errors, status_code=400)
-        
-        serializer.save()
-        return success_response(data=serializer.data, message="Ligne ajoutée", status_code=201)
-
-
-class StockOutputListView(views.APIView):
-    """Liste et création des sorties de stock."""
-    
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsManager()]
-        return [IsOperator()]
-    
-    def get(self, request):
-        queryset = StockOutput.objects.filter(is_deleted=False).select_related('warehouse', 'department')
-        return paginated_response(queryset, StockOutputSerializer, request)
-    
-    @swagger_auto_schema(request_body=StockOutputSerializer)
-    def post(self, request):
-        serializer = StockOutputSerializer(data=request.data)
-        if not serializer.is_valid():
-            return error_response(message="Erreur validation", errors=serializer.errors, status_code=400)
-        
-        output = serializer.save(issued_by=request.user)
-        return success_response(data=StockOutputSerializer(output).data, message="Sortie créée", status_code=201)
-
-
-class TransferListView(views.APIView):
-    """Liste et création des transferts."""
-    
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsManager()]
-        return [IsOperator()]
-    
-    def get(self, request):
-        queryset = Transfer.objects.filter(is_deleted=False).select_related(
-            'source_warehouse', 'destination_warehouse'
-        )
-        
-        status_filter = request.query_params.get('status')
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        
-        return paginated_response(queryset, TransferSerializer, request)
-    
-    @swagger_auto_schema(request_body=TransferSerializer)
-    def post(self, request):
-        serializer = TransferSerializer(data=request.data)
-        if not serializer.is_valid():
-            return error_response(message="Erreur validation", errors=serializer.errors, status_code=400)
-        
-        transfer = serializer.save(requested_by=request.user)
-        return success_response(data=TransferSerializer(transfer).data, message="Transfert créé", status_code=201)
-
 
 class StockEntryCreateView(views.APIView):
     permission_classes = [IsManager]
     def post(self, request):
-        from apps.warehouses.models import Warehouse
-        from apps.products.models import Product
         try:
-            wh = Warehouse.objects.get(id=request.data.get("warehouse_id"))
-            entry = StockEntry.objects.create(warehouse=wh, received_by=request.user, notes=request.data.get("notes", ""))
-            items = request.data.get("items", [])
-            for item in items:
-                product = Product.objects.get(id=item.get("product_id"))
-                StockEntryLine.objects.create(entry=entry, product=product, quantity=item.get("quantity", 0), unit_price=item.get("unit_price", 0))
+            wh_id = request.data.get("warehouse_id")
+            supplier_id = request.data.get("supplier_id")
+            product_id = request.data.get("product_id")
+            quantity = int(request.data.get("quantity", 0))
+            unit_price = float(request.data.get("unit_price", 0))
+            
+            if not wh_id: return error_response(message="Entrepôt requis", status_code=400)
+            if not product_id: return error_response(message="Produit requis", status_code=400)
+            if quantity <= 0: return error_response(message="Quantité invalide", status_code=400)
+            
+            wh = Warehouse.objects.get(id=wh_id)
+            product = Product.objects.get(id=product_id)
+            supplier = Supplier.objects.get(id=supplier_id) if supplier_id else None
+            
+            entry = StockEntry.objects.create(warehouse=wh, supplier=supplier, received_by=request.user, notes=request.data.get("notes", ""))
+            StockEntryLine.objects.create(entry=entry, product=product, quantity=quantity, unit_price=unit_price)
+            entry.total_amount = quantity * unit_price
+            entry.save()
+            
             return success_response(data={"id": str(entry.id), "reference": entry.reference}, message="Entrée créée", status_code=201)
-        except Exception as e:
-            return error_response(message=str(e), status_code=400)
+        except Warehouse.DoesNotExist: return error_response(message="Entrepôt introuvable", status_code=400)
+        except Product.DoesNotExist: return error_response(message="Produit introuvable", status_code=400)
+        except Exception as e: return error_response(message=str(e), status_code=400)
+
+class StockOutputListView(views.APIView):
+    permission_classes = [IsOperator]
+    def get(self, request):
+        qs = StockOutput.objects.filter(is_deleted=False).select_related("warehouse").order_by("-output_date")
+        data = [{"id": str(o.id), "reference": o.reference, "reason": o.reason, "output_date": o.output_date.isoformat() if o.output_date else None, "total_amount": float(o.total_amount), "status": o.status} for o in qs]
+        return success_response(data={"results": data, "count": len(data)})
 
 class StockOutputCreateView(views.APIView):
     permission_classes = [IsManager]
     def post(self, request):
-        from apps.warehouses.models import Warehouse
-        from apps.products.models import Product
         try:
-            wh = Warehouse.objects.get(id=request.data.get("warehouse_id"))
+            wh_id = request.data.get("warehouse_id")
+            product_id = request.data.get("product_id")
+            quantity = int(request.data.get("quantity", 0))
+            
+            if not wh_id: return error_response(message="Entrepôt requis", status_code=400)
+            if not product_id: return error_response(message="Produit requis", status_code=400)
+            if quantity <= 0: return error_response(message="Quantité invalide", status_code=400)
+            
+            wh = Warehouse.objects.get(id=wh_id)
+            product = Product.objects.get(id=product_id)
+            
             output = StockOutput.objects.create(warehouse=wh, reason=request.data.get("reason", "INTERNAL_USE"), issued_by=request.user, notes=request.data.get("notes", ""))
-            items = request.data.get("items", [])
-            for item in items:
-                product = Product.objects.get(id=item.get("product_id"))
-                StockOutputLine.objects.create(output=output, product=product, quantity=item.get("quantity", 0), unit_price=item.get("unit_price", 0))
+            StockOutputLine.objects.create(output=output, product=product, quantity=quantity, unit_price=product.unit_price)
+            output.total_amount = quantity * float(product.unit_price)
+            output.save()
+            
             return success_response(data={"id": str(output.id), "reference": output.reference}, message="Sortie créée", status_code=201)
-        except Exception as e:
-            return error_response(message=str(e), status_code=400)
+        except Warehouse.DoesNotExist: return error_response(message="Entrepôt introuvable", status_code=400)
+        except Product.DoesNotExist: return error_response(message="Produit introuvable", status_code=400)
+        except Exception as e: return error_response(message=str(e), status_code=400)
+
+class TransferListView(views.APIView):
+    permission_classes = [IsOperator]
+    def get(self, request):
+        qs = Transfer.objects.filter(is_deleted=False).select_related("source_warehouse", "destination_warehouse")
+        data = [{"id": str(t.id), "reference": t.reference, "source_name": t.source_warehouse.name, "destination_name": t.destination_warehouse.name, "total_items": t.total_items, "status": t.status} for t in qs]
+        return success_response(data={"results": data, "count": len(data)})
 
 class TransferCreateView(views.APIView):
     permission_classes = [IsManager]
     def post(self, request):
-        from apps.warehouses.models import Warehouse
-        from apps.products.models import Product
         try:
-            src = Warehouse.objects.get(id=request.data.get("source_warehouse_id"))
-            dst = Warehouse.objects.get(id=request.data.get("destination_warehouse_id"))
+            src_id = request.data.get("source_warehouse_id")
+            dst_id = request.data.get("destination_warehouse_id")
+            product_id = request.data.get("product_id")
+            quantity = int(request.data.get("quantity", 0))
+            
+            if not src_id or not dst_id: return error_response(message="Entrepôts source et destination requis", status_code=400)
+            if not product_id: return error_response(message="Produit requis", status_code=400)
+            if quantity <= 0: return error_response(message="Quantité invalide", status_code=400)
+            
+            src = Warehouse.objects.get(id=src_id)
+            dst = Warehouse.objects.get(id=dst_id)
+            product = Product.objects.get(id=product_id)
+            
             transfer = Transfer.objects.create(source_warehouse=src, destination_warehouse=dst, requested_by=request.user, notes=request.data.get("notes", ""))
-            items = request.data.get("items", [])
-            for item in items:
-                product = Product.objects.get(id=item.get("product_id"))
-                TransferLine.objects.create(transfer=transfer, product=product, quantity=item.get("quantity", 0), unit_price=item.get("unit_price", 0))
+            TransferLine.objects.create(transfer=transfer, product=product, quantity=quantity, unit_price=product.unit_price)
+            transfer.total_items = quantity
+            transfer.save()
+            
             return success_response(data={"id": str(transfer.id), "reference": transfer.reference}, message="Transfert créé", status_code=201)
-        except Exception as e:
-            return error_response(message=str(e), status_code=400)
+        except Warehouse.DoesNotExist: return error_response(message="Entrepôt introuvable", status_code=400)
+        except Product.DoesNotExist: return error_response(message="Produit introuvable", status_code=400)
+        except Exception as e: return error_response(message=str(e), status_code=400)

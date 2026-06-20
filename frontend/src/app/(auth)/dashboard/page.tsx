@@ -1,54 +1,58 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Package, DollarSign, ShoppingCart, AlertTriangle, Download } from "lucide-react"
+import { Search, Download } from "lucide-react"
 
 const API = "http://localhost:8000/api/v1"
 
-export default function DashboardPage() {
-  const [data, setData] = useState(null)
+export default function Page() {
+  const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
 
   const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : ""
   const headers = { Authorization: "Bearer " + token }
 
   useEffect(() => {
-    fetch(API + "/dashboard/", { headers }).then(r => r.json()).then(d => { if (d.success) setData(d.data); setLoading(false) }).catch(() => setLoading(false))
+    fetch(API + "/dashboard/", { headers })
+      .then(r => r.json())
+      .then(d => {
+        const items = d?.results || d?.data?.results || d?.data || []
+        setData(Array.isArray(items) ? items : [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
-  const handleExport = () => {
-    const k = data?.kpis || {}
-    const csv = "Indicateur,Valeur\nProduits," + (k.totalProducts||0) + "\nValeur stock," + (k.stockValue||0) + "\nCommandes," + (k.pendingOrders||0) + "\nAlertes," + (k.lowStockItems||0)
-    const blob = new Blob([csv], { type: "text/csv" })
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "dashboard.csv"; a.click()
+  const filtered = data.filter(item => JSON.stringify(item).toLowerCase().includes(search.toLowerCase()))
+  const keys = filtered.length > 0 ? Object.keys(filtered[0]).slice(0, 6) : []
+
+  const exportCSV = () => {
+    if (filtered.length === 0) return
+    const csv = keys.join(",") + "\n" + filtered.map(item => keys.map(k => item[k] ?? "").join(",")).join("\n")
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv]))
+    a.download = "dashboard.csv"
+    a.click()
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div></div>
-
-  const kpis = data?.kpis || {}
-  const stats = [
-    { title: "Produits", value: kpis.totalProducts || 0, icon: Package, color: "from-emerald-500 to-teal-500" },
-    { title: "Valeur stock", value: (kpis.stockValue || 0).toLocaleString() + " XAF", icon: DollarSign, color: "from-blue-500 to-indigo-500" },
-    { title: "Commandes", value: kpis.pendingOrders || 0, icon: ShoppingCart, color: "from-amber-500 to-orange-500" },
-    { title: "Alertes", value: kpis.lowStockItems || 0, icon: AlertTriangle, color: "from-rose-500 to-red-500" },
-  ]
+  if (loading) return <div className="flex justify-center h-64 items-center"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div></div>
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-gray-800">Tableau de bord</h1></div>
-        <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50"><Download size={16} /> Exporter</button>
+        <div><h1 className="text-2xl font-bold text-gray-800">dashboard</h1><p className="text-sm text-gray-500">{data.length} élément(s)</p></div>
+        <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2.5 text-sm border rounded-xl hover:bg-gray-50"><Download size={16} /> Exporter</button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {stats.map((s, i) => {
-          const Icon = s.icon
-          return (
-            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className={"p-2.5 rounded-xl bg-gradient-to-br " + s.color + " w-fit mb-3"}><Icon size={18} className="text-white" /></div>
-              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
-              <p className="text-sm text-gray-500">{s.title}</p>
-            </div>
-          )
-        })}
+      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="p-4 border-b"><div className="relative max-w-sm"><Search size={16} className="absolute left-3 top-2.5 text-gray-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..." className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm" /></div></div>
+        <div className="overflow-x-auto">
+          {filtered.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50"><tr>{keys.map(k => <th key={k} className="text-left px-4 py-2 font-semibold text-gray-600">{k}</th>)}</tr></thead>
+              <tbody>{filtered.slice(0, 50).map((item, i) => <tr key={i} className="border-b hover:bg-gray-50/30">{keys.map(k => <td key={k} className="px-4 py-2 text-gray-700">{typeof item[k] === "object" ? JSON.stringify(item[k]) : String(item[k] ?? "")}</td>)}</tr>)}</tbody>
+            </table>
+          ) : <p className="text-gray-400 text-center py-12">Aucune donnée</p>}
+        </div>
       </div>
     </div>
   )
