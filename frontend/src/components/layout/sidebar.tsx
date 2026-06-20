@@ -3,45 +3,46 @@ import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  LayoutDashboard, Package, Warehouse, ShoppingCart, ArrowRightLeft,
-  ClipboardList, BarChart3, Settings, Users, Bell, FileText, QrCode,
-  Wrench, ChevronDown, ChevronRight, GraduationCap, type LucideIcon
+  LayoutDashboard, Package, Warehouse, ShoppingCart,
+  ClipboardList, BarChart3, Settings, FileText, QrCode,
+  Wrench, ChevronDown, ChevronRight, GraduationCap, Bot
 } from "lucide-react"
 
 interface NavItem {
   title: string
   href?: string
-  icon: LucideIcon
-  children?: Omit<NavItem, "icon" | "children">[]
+  icon: any
+  children?: { title: string; href: string }[]
 }
 
 const navigation: NavItem[] = [
   { title: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { title: "Produits", icon: Package, children: [
-      { title: "Tous les produits", href: "/products" },
-      { title: "Catégories", href: "/categories" },
-      { title: "Fournisseurs", href: "/suppliers" },
+    { title: "Tous les produits", href: "/products" },
+    { title: "Catégories", href: "/categories" },
+    { title: "Fournisseurs", href: "/suppliers" },
   ]},
   { title: "Stocks", icon: Warehouse, children: [
-      { title: "Vue d'ensemble", href: "/stocks" },
-      { title: "Entrées", href: "/stocks/entries" },
-      { title: "Sorties", href: "/stocks/outputs" },
-      { title: "Transferts", href: "/stocks/transfers" },
+    { title: "Vue d'ensemble", href: "/stocks" },
+    { title: "Entrées", href: "/stocks/entries" },
+    { title: "Sorties", href: "/stocks/outputs" },
+    { title: "Transferts", href: "/stocks/transfers" },
   ]},
   { title: "Commandes", href: "/orders", icon: ShoppingCart },
   { title: "Inventaires", href: "/inventories", icon: ClipboardList },
   { title: "Rapports", icon: FileText, children: [
-      { title: "Générer un rapport", href: "/reports" },
-      { title: "Rapports planifiés", href: "/reports/scheduled" },
+    { title: "Générer un rapport", href: "/reports" },
+    { title: "Rapports planifiés", href: "/reports/scheduled" },
   ]},
   { title: "Analytiques", href: "/analytics", icon: BarChart3 },
   { title: "QR Codes", href: "/qr-codes", icon: QrCode },
+  { title: "Chatbot IA", href: "/chatbot", icon: Bot },
   { title: "Maintenance", href: "/maintenance", icon: Wrench },
   { title: "Administration", icon: Settings, children: [
-      { title: "Utilisateurs", href: "/admin/users" },
-      { title: "Rôles", href: "/admin/roles" },
-      { title: "Audit", href: "/admin/audit" },
-      { title: "Paramètres", href: "/admin/settings" },
+    { title: "Utilisateurs", href: "/admin/users" },
+    { title: "Rôles", href: "/admin/roles" },
+    { title: "Audit", href: "/admin/audit" },
+    { title: "Paramètres", href: "/admin/settings" },
   ]},
 ]
 
@@ -80,10 +81,10 @@ export function Sidebar() {
                 {isExpanded && (
                   <div className="ml-4 mt-0.5 space-y-0.5">
                     {item.children.map((child) => (
-                      <Link key={child.href} href={child.href!}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                          isActive(child.href!) ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 font-medium border-l-2 border-emerald-400" : "text-white/50 hover:bg-white/5 hover:text-white/80"
-                        }`}>
+                      <Link key={child.href} href={child.href}
+                        className={"flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all " + (
+                          isActive(child.href) ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 font-medium border-l-2 border-emerald-400" : "text-white/50 hover:bg-white/5 hover:text-white/80"
+                        )}>
                         {child.title}
                       </Link>
                     ))}
@@ -94,9 +95,9 @@ export function Sidebar() {
           }
           return (
             <Link key={item.href} href={item.href!}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+              className={"flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all " + (
                 isActive(item.href!) ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-white font-medium shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
-              }`}>
+              )}>
               <Icon size={18} />
               <span>{item.title}</span>
             </Link>
