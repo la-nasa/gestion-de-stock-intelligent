@@ -19,7 +19,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-from apps.products.models import Product, Category
+from apps.products.models import Product
+from apps.categories.models import Category
 from apps.stock_movements.models import Stock, StockMovement
 from apps.purchase_orders.models import PurchaseOrder
 from apps.inventories.models import Inventory

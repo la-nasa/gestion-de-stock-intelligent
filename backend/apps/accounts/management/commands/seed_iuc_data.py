@@ -1,4 +1,4 @@
-﻿"""
+"""
 Commande de seeding complet pour l'IUC.
 Peuple la base de données avec des données réalistes.
 """

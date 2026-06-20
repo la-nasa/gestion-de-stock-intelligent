@@ -7,7 +7,8 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.products.models import Product, Category
+from apps.products.models import Product
+from apps.categories.models import Category
 from apps.stock_movements.models import Stock, StockMovement
 from apps.purchase_orders.models import PurchaseOrder
 from apps.transfers.models import Transfer
