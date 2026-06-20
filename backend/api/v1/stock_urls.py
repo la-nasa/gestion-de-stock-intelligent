@@ -29,3 +29,14 @@ urlpatterns = [
     path("purchase-orders/create/", PurchaseOrderCreateView.as_view(), name="purchase-orders-create"),
     path("products/create/", ProductCreateView.as_view(), name="products-create"),
 ]
+
+# Warehouses
+from api.v1.views.warehouse_views import WarehouseListView, WarehouseDetailView, WarehouseCreateView
+urlpatterns += [
+    path("warehouses/", WarehouseListView.as_view(), name="warehouses-list"),
+    path("warehouses/<uuid:pk>/", WarehouseDetailView.as_view(), name="warehouses-detail"),
+    path("warehouses/create/", WarehouseCreateView.as_view(), name="warehouses-create"),
+]
+# Campuses
+from api.v1.views.campus_views import CampusListView
+urlpatterns += [path("campuses/", CampusListView.as_view(), name="campuses-list")]

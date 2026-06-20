@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Package, Warehouse, ShoppingCart,
   ClipboardList, BarChart3, Settings, FileText, QrCode,
-  Wrench, ChevronDown, ChevronRight, GraduationCap, Bot
+  Wrench, ChevronDown, ChevronRight, GraduationCap, Bot,
+  FileSearch, X, Shield, Key
 } from "lucide-react"
 
 interface NavItem {
@@ -41,28 +42,32 @@ const navigation: NavItem[] = [
   { title: "Administration", icon: Settings, children: [
     { title: "Utilisateurs", href: "/admin/users" },
     { title: "Rôles", href: "/admin/roles" },
+    { title: "Permissions", href: "/admin/permissions" },
+    { title: "Entrepôts", href: "/admin/warehouses" },
     { title: "Audit", href: "/admin/audit" },
     { title: "Paramètres", href: "/admin/settings" },
   ]},
 ]
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const [expanded, setExpanded] = React.useState<string[]>([])
   const toggle = (t: string) => setExpanded(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t])
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/")
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 flex flex-col shadow-xl"
-           style={{background: "linear-gradient(180deg, #1e3a5f 0%, #1a3354 30%, #15294a 100%)"}}>
+    <aside className="h-screen w-64 flex flex-col shadow-xl" style={{background: "linear-gradient(180deg, #1e3a5f 0%, #1a3354 30%, #15294a 100%)"}}>
       <div className="h-16 flex items-center gap-3 px-5 border-b border-white/10">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
           <GraduationCap size={18} className="text-white" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-sm font-bold text-white tracking-wide">IUC Inventory</h1>
           <p className="text-[10px] text-emerald-300/80">Gestion de stock</p>
         </div>
+        <button onClick={onClose} className="lg:hidden text-white/70 hover:text-white">
+          <X size={18} />
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
