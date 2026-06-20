@@ -143,3 +143,27 @@ class ProductLowStockView(views.APIView):
         low = [p for p in products if p.is_low_stock]
         data = [{"product": ProductListSerializer(p).data, "total_stock": sum(s.quantity for s in p.stocks.filter(is_deleted=False)), "min_stock": p.min_stock, "reorder_point": p.reorder_point, "suggested_order": p.optimal_quantity - sum(s.quantity for s in p.stocks.filter(is_deleted=False))} for p in low]
         return success_response(data={"results": data, "count": len(data)})
+
+class ProductCreateView(views.APIView):
+    permission_classes = [IsManager]
+    def post(self, request):
+        from apps.categories.models import Category
+        try:
+            cat = Category.objects.get(id=request.data.get("category_id"))
+            p = Product.objects.create(
+                name=request.data.get("name", ""),
+                reference=request.data.get("reference", ""),
+                sku=request.data.get("sku", ""),
+                category=cat,
+                unit_price=request.data.get("unit_price", 0),
+                min_stock=request.data.get("min_stock", 0),
+                max_stock=request.data.get("max_stock", 100),
+                unit=request.data.get("unit", "PIECE"),
+                brand=request.data.get("brand", ""),
+                description=request.data.get("description", ""),
+            )
+            return success_response(data={"id": str(p.id), "name": p.name, "reference": p.reference}, message="Produit créé", status_code=201)
+        except Category.DoesNotExist:
+            return error_response(message="Catégorie introuvable", status_code=400)
+        except Exception as e:
+            return error_response(message=str(e), status_code=400)

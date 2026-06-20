@@ -1,76 +1,43 @@
 "use client"
-import { useState } from "react"
-import { Search, Package, TrendingUp, TrendingDown, AlertTriangle, ArrowUpDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Download, Package, TrendingUp, AlertTriangle } from "lucide-react"
 
-const stocks = [
-  { product: "Ordinateur Dell Latitude", ref: "DELL-LAT-5540", warehouse: "Entrepôt Central", qty: 45, available: 42, price: "450 000", value: "20 250 000", status: "normal" },
-  { product: "Imprimante HP LaserJet", ref: "HP-LJ-MFP4101", warehouse: "Magasin Informatique", qty: 8, available: 6, price: "180 000", value: "1 440 000", status: "low" },
-  { product: "Papier A4 80g", ref: "PAP-A4-80", warehouse: "Magasin Fournitures", qty: 520, available: 500, price: "2 500", value: "1 300 000", status: "normal" },
-  { product: "Projecteur Epson", ref: "EPS-EBX51", warehouse: "Entrepôt Central", qty: 2, available: 0, price: "300 000", value: "600 000", status: "out" },
-  { product: "Microscope Olympus", ref: "OLY-CX23", warehouse: "Entrepôt Bonabéri", qty: 6, available: 5, price: "500 000", value: "3 000 000", status: "normal" },
-]
+const API = "http://localhost:8000/api/v1"
 
 export default function StocksPage() {
+  const [stocks, setStocks] = useState([])
+  const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(true)
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : ""
+  const headers = { Authorization: "Bearer " + token }
+
+  useEffect(() => {
+    fetch(API + "/stocks/", { headers }).then(r => r.json()).then(d => { setStocks(d.data?.results || []); setLoading(false) }).catch(() => setLoading(false))
+  }, [])
+
+  const handleExport = () => {
+    const csv = "Produit,Référence,Entrepôt,Quantité,Disponible,Prix,Valeur\n" + stocks.map(s => [s.product_name, s.product_reference, s.warehouse_name, s.quantity, s.available_quantity, s.unit_price, s.quantity * s.unit_price].join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "stocks.csv"; a.click()
+  }
+
+  const totalValue = stocks.reduce((s, x) => s + (x.quantity || 0) * (x.unit_price || 0), 0)
+  const filtered = stocks.filter(s => (s.product_name || "").toLowerCase().includes(search.toLowerCase()))
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div></div>
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-gray-800">Stocks</h1><p className="text-sm text-gray-500 mt-1">Vue d'ensemble des stocks par entrepôt</p></div>
-        <button className="flex items-center gap-2 px-5 py-2.5 text-sm text-white rounded-xl font-medium bg-gradient-to-r from-emerald-500 to-teal-600 hover:shadow-lg"><ArrowUpDown size={16} /> Transfert</button>
+        <div><h1 className="text-2xl font-bold text-gray-800">Stocks</h1><p className="text-sm text-gray-500">Valeur totale : {totalValue.toLocaleString()} XAF</p></div>
+        <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50"><Download size={16} /> Exporter</button>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { label: "Articles en stock", value: stocks.length, icon: Package, color: "from-emerald-500 to-teal-500" },
-          { label: "Valeur totale", value: "26.6M XAF", icon: TrendingUp, color: "from-blue-500 to-indigo-500" },
-          { label: "Stocks bas", value: "3", icon: AlertTriangle, color: "from-amber-500 to-orange-500" },
-          { label: "Ruptures", value: "1", icon: TrendingDown, color: "from-rose-500 to-red-500" },
-        ].map((s, i) => {
-          const Icon = s.icon
-          return (
-            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${s.color} shadow-sm`}><Icon size={18} className="text-white" /></div>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
-              <p className="text-sm text-gray-500">{s.label}</p>
-            </div>
-          )
-        })}
-      </div>
-
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-sm">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input placeholder="Rechercher..." className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
-          </div>
-        </div>
+        <div className="p-4 border-b"><div className="relative max-w-sm"><Search size={16} className="absolute left-3 top-2.5 text-gray-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..." className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm" /></div></div>
         <table className="w-full text-sm">
-          <thead className="bg-gray-50/50">
-            <tr>
-              <th className="text-left px-6 py-3 font-semibold text-gray-600">Produit</th>
-              <th className="text-left px-6 py-3 font-semibold text-gray-600">Entrepôt</th>
-              <th className="text-center px-6 py-3 font-semibold text-gray-600">Qté</th>
-              <th className="text-center px-6 py-3 font-semibold text-gray-600">Disponible</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Prix Unit.</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Valeur</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stocks.map((s, i) => (
-              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/30">
-                <td className="px-6 py-4"><p className="font-medium text-gray-800">{s.product}</p><p className="text-xs text-gray-400">{s.ref}</p></td>
-                <td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700">{s.warehouse}</span></td>
-                <td className="px-6 py-4 text-center">
-                  <span className={`font-semibold ${s.status==="out"?"text-red-600":s.status==="low"?"text-amber-600":"text-emerald-600"}`}>{s.qty}</span>
-                </td>
-                <td className="px-6 py-4 text-center font-medium">{s.available}</td>
-                <td className="px-6 py-4 text-right text-gray-600">{s.price} XAF</td>
-                <td className="px-6 py-4 text-right font-semibold text-gray-800">{s.value} XAF</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <thead className="bg-gray-50"><tr><th className="text-left px-6 py-3">Produit</th><th className="text-left px-6 py-3">Entrepôt</th><th className="text-center px-6 py-3">Qté</th><th className="text-right px-6 py-3">Prix</th><th className="text-right px-6 py-3">Valeur</th></tr></thead>
+          <tbody>{filtered.map(s => (<tr key={s.id} className="border-b border-gray-50"><td className="px-6 py-4"><p className="font-medium">{s.product_name}</p><p className="text-xs text-gray-400">{s.product_reference}</p></td><td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700">{s.warehouse_name}</span></td><td className="px-6 py-4 text-center font-semibold">{s.quantity}</td><td className="px-6 py-4 text-right">{s.unit_price?.toLocaleString()}</td><td className="px-6 py-4 text-right font-semibold">{((s.quantity||0)*(s.unit_price||0)).toLocaleString()}</td></tr>))}</tbody></table>
       </div>
     </div>
   )

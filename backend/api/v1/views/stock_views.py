@@ -234,3 +234,53 @@ class TransferListView(views.APIView):
         
         transfer = serializer.save(requested_by=request.user)
         return success_response(data=TransferSerializer(transfer).data, message="Transfert créé", status_code=201)
+
+
+class StockEntryCreateView(views.APIView):
+    permission_classes = [IsManager]
+    def post(self, request):
+        from apps.warehouses.models import Warehouse
+        from apps.products.models import Product
+        try:
+            wh = Warehouse.objects.get(id=request.data.get("warehouse_id"))
+            entry = StockEntry.objects.create(warehouse=wh, received_by=request.user, notes=request.data.get("notes", ""))
+            items = request.data.get("items", [])
+            for item in items:
+                product = Product.objects.get(id=item.get("product_id"))
+                StockEntryLine.objects.create(entry=entry, product=product, quantity=item.get("quantity", 0), unit_price=item.get("unit_price", 0))
+            return success_response(data={"id": str(entry.id), "reference": entry.reference}, message="Entrée créée", status_code=201)
+        except Exception as e:
+            return error_response(message=str(e), status_code=400)
+
+class StockOutputCreateView(views.APIView):
+    permission_classes = [IsManager]
+    def post(self, request):
+        from apps.warehouses.models import Warehouse
+        from apps.products.models import Product
+        try:
+            wh = Warehouse.objects.get(id=request.data.get("warehouse_id"))
+            output = StockOutput.objects.create(warehouse=wh, reason=request.data.get("reason", "INTERNAL_USE"), issued_by=request.user, notes=request.data.get("notes", ""))
+            items = request.data.get("items", [])
+            for item in items:
+                product = Product.objects.get(id=item.get("product_id"))
+                StockOutputLine.objects.create(output=output, product=product, quantity=item.get("quantity", 0), unit_price=item.get("unit_price", 0))
+            return success_response(data={"id": str(output.id), "reference": output.reference}, message="Sortie créée", status_code=201)
+        except Exception as e:
+            return error_response(message=str(e), status_code=400)
+
+class TransferCreateView(views.APIView):
+    permission_classes = [IsManager]
+    def post(self, request):
+        from apps.warehouses.models import Warehouse
+        from apps.products.models import Product
+        try:
+            src = Warehouse.objects.get(id=request.data.get("source_warehouse_id"))
+            dst = Warehouse.objects.get(id=request.data.get("destination_warehouse_id"))
+            transfer = Transfer.objects.create(source_warehouse=src, destination_warehouse=dst, requested_by=request.user, notes=request.data.get("notes", ""))
+            items = request.data.get("items", [])
+            for item in items:
+                product = Product.objects.get(id=item.get("product_id"))
+                TransferLine.objects.create(transfer=transfer, product=product, quantity=item.get("quantity", 0), unit_price=item.get("unit_price", 0))
+            return success_response(data={"id": str(transfer.id), "reference": transfer.reference}, message="Transfert créé", status_code=201)
+        except Exception as e:
+            return error_response(message=str(e), status_code=400)
