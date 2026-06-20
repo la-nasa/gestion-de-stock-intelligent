@@ -1,13 +1,5 @@
-# Pour le déploiement, toujours utiliser les settings de production
-# Les settings de développement sont utilisés uniquement en local
 import os
-
-if os.environ.get('DJANGO_SETTINGS_MODULE') == 'config.settings.production':
-    from .production import *
-elif os.environ.get('RENDER') == 'true':
-    from .production import *
+if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER'):
+    from .base import *
 else:
-    try:
-        from .development import *
-    except ImportError:
-        from .production import *
+    from .base import *
